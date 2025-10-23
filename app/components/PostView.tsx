@@ -11,12 +11,17 @@ const CommentIcon = () => (
     <svg className="w-7 h-7 text-brand-green/80 hover:text-brand-blue transition-colors cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
 );
 
+const ShareIcon = () => (
+    <svg className="w-7 h-7 text-brand-green/80 hover:text-brand-blue transition-colors cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+);
+
 type PostViewProps = {
   post: Post;
 };
 
 const PostView = ({ post }: PostViewProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showComments, setShowComments] = useState(true);
 
   const isGallery = post.media.type === 'gallery' && post.media.urls && post.media.urls.length > 1;
 
@@ -40,8 +45,26 @@ const PostView = ({ post }: PostViewProps) => {
     return post.media.url!;
   };
 
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post.title,
+          text: post.excerpt,
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copied to clipboard!');
+    }
+  };
+
   return (
-    <div className="bg-white border border-brand-green/20 rounded-xl overflow-hidden max-w-2xl w-full mx-auto">
+    <div className="bg-white border border-brand-green/20 rounded-xl overflow-hidden max-w-2xl w-full mx-auto shadow-sm hover:shadow-md transition-shadow">
       {/* --- Post Header --- */}
       <div className="p-4 flex items-center">
         <Image
@@ -51,7 +74,10 @@ const PostView = ({ post }: PostViewProps) => {
           height={40}
           className="rounded-full mr-4"
         />
-        <span className="font-bold text-brand-green">{post.authorName}</span>
+        <div className="flex-1">
+          <p className="font-bold text-brand-green">{post.authorName}</p>
+          <p className="text-xs text-brand-green/60">{post.category}</p>
+        </div>
       </div>
 
       {/* --- Post Media Carousel --- */}
@@ -93,13 +119,20 @@ const PostView = ({ post }: PostViewProps) => {
       </div>
       
       {/* --- Actions Bar --- */}
-      <div className="flex items-start space-x-4 p-4 border-b border-brand-green/10">
-        <LikeButton postId={post.id} initialLikeCount={post.likeCount || 0} />
-        <CommentIcon />
+      <div className="flex items-start justify-between p-4 border-b border-brand-green/10">
+        <div className="flex items-start space-x-4">
+          <LikeButton postId={post.id} initialLikeCount={post.likeCount || 0} />
+          <div onClick={() => setShowComments(!showComments)}>
+            <CommentIcon />
+          </div>
+          <div onClick={handleShare}>
+            <ShareIcon />
+          </div>
+        </div>
       </div>
 
       {/* --- Comment Section --- */}
-      <CommentSection post={post} />
+      {showComments && <CommentSection post={post} />}
     </div>
   );
 };
