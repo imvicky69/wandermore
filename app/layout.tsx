@@ -1,10 +1,6 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/Navbar";
-import { AuthContextProvider } from "./context/AuthContext"; // <-- 1. IMPORT
-
-const inter = Inter({ subsets: ["latin"] });
+import { AuthContextProvider } from "./context/AuthContext";
 
 export const metadata = {
   title: "Wandermore",
@@ -18,13 +14,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <AuthContextProvider> {/* <-- 2. WRAP YOUR COMPONENTS */}
+      <body>
+        <AuthContextProvider>
           <Navbar />
           <main className="max-w-5xl mx-auto px-4 py-8">
             {children}
           </main>
-        </AuthContextProvider> {/* <-- 3. CLOSE THE WRAPPER */}
+        </AuthContextProvider>
       </body>
     </html>
   );
