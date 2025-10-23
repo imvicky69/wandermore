@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { Post } from '../page';
+import { useAuth } from '../context/AuthContext';
+import Image from 'next/image';
 
 // Type definition for a single comment
 type Comment = {
   id: string;
   authorName: string;
+  authorImageUrl?: string;
   text: string;
   timestamp: Timestamp;
 };
@@ -20,6 +23,7 @@ type CommentSectionProps = {
 export const CommentSection = ({ post }: CommentSectionProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
+  const { user } = useAuth();
 
   // REAL-TIME LISTENER FOR COMMENTS
   useEffect(() => {
@@ -43,10 +47,16 @@ export const CommentSection = ({ post }: CommentSectionProps) => {
     e.preventDefault();
     if (newComment.trim() === '') return;
 
+    if (!user) {
+      alert('Please login to comment');
+      return;
+    }
+
     const commentsRef = collection(db, 'posts', post.id, 'comments');
     await addDoc(commentsRef, {
       text: newComment,
-      authorName: 'Anonymous', // We'll update this with real auth later
+      authorName: user.displayName || 'Anonymous',
+      authorImageUrl: user.photoURL || '',
       timestamp: serverTimestamp(),
     });
 
@@ -63,25 +73,57 @@ export const CommentSection = ({ post }: CommentSectionProps) => {
       </div>
 
       {/* List of Comments */}
-      <div className="space-y-2 max-h-40 overflow-y-auto">
+      <div className="space-y-3 max-h-60 overflow-y-auto">
         {comments.map((comment) => (
-          <div key={comment.id} className="text-sm">
-            <span className="font-bold text-brand-green mr-2">{comment.authorName}</span>
-            <span className="text-brand-green/80">{comment.text}</span>
+          <div key={comment.id} className="flex items-start gap-2">
+            {comment.authorImageUrl && (
+              <Image
+                src={comment.authorImageUrl}
+                alt={comment.authorName}
+                width={24}
+                height={24}
+                className="rounded-full mt-0.5"
+              />
+            )}
+            <div className="text-sm flex-1">
+              <span className="font-bold text-brand-green mr-2">{comment.authorName}</span>
+              <span className="text-brand-green/80">{comment.text}</span>
+            </div>
           </div>
         ))}
       </div>
       
       {/* Add Comment Form */}
-      <form onSubmit={handleCommentSubmit} className="mt-4">
-        <input 
-          type="text" 
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment..."
-          className="w-full bg-transparent border-b border-brand-green/30 focus:outline-none focus:border-brand-blue text-sm py-1"
-        />
-      </form>
+      {user ? (
+        <form onSubmit={handleCommentSubmit} className="mt-4 flex items-center gap-2">
+          <Image
+            src={user.photoURL || '/default-avatar.png'}
+            alt="Your profile"
+            width={24}
+            height={24}
+            className="rounded-full"
+          />
+          <input 
+            type="text" 
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Add a comment..."
+            className="flex-1 bg-transparent border-b border-brand-green/30 focus:outline-none focus:border-brand-blue text-sm py-1"
+          />
+          <button
+            type="submit"
+            className="text-brand-blue font-semibold text-sm hover:text-brand-blue/80"
+          >
+            Post
+          </button>
+        </form>
+      ) : (
+        <div className="mt-4 text-center">
+          <a href="/login" className="text-brand-blue text-sm hover:underline">
+            Log in to comment
+          </a>
+        </div>
+      )}
     </div>
   );
 };
